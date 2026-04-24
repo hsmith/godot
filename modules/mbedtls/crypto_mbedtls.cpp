@@ -355,7 +355,9 @@ void CryptoMbedTLS::load_default_certificates(const String &p_path) {
 	default_certs = memnew(X509CertificateMbedTLS);
 	ERR_FAIL_NULL(default_certs);
 
-	if (!p_path.is_empty()) {
+	///###hsmith $FIX EditorSettings specifically coerces the variant into a string type
+	/// so it never is empty, it will be "False" if bad.
+	if (p_path != "False") {
 		// Use certs defined in project settings.
 		default_certs->load(p_path);
 	} else {
