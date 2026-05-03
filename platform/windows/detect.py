@@ -183,6 +183,14 @@ def get_opts():
             d3d12_deps_folder = ""
 
     return [
+        ("CC_FORCE", "Override C compiler", ""),
+        ("CXX_FORCE", "Override C++ compiler", ""),
+        ("AR_FORCE", "Override archiver", ""),
+        ("RANLIB_FORCE", "Override ranlib", ""),
+        ("RC_FORCE", "Override Windows resource compiler", ""),
+        ("STRIP_FORCE", "Override strip tool", ""),
+        ("CCFLAGS_FORCE", "Override/Add compiler flags", ""),
+        ("LINKFLAGS_FORCE", "Override/Add linker flags", ""),
         ("mingw_prefix", "MinGW prefix", mingw),
         EnumVariable("windows_subsystem", "Windows subsystem", "gui", ["gui", "console"], ignorecase=2),
         ("msvc_version", "MSVC version to use. Handled automatically by SCons if omitted.", ""),
@@ -640,8 +648,17 @@ def configure_mingw(env: "SConsEnvironment"):
         env.Append(LINKFLAGS=["-Wl,--subsystem,console"])
         env.AppendUnique(CPPDEFINES=["WINDOWS_SUBSYSTEM_CONSOLE"])
 
-    ## Compiler configuration
+    ## Extract user overrides from the command line
+    # Capture the strings passed in via 'just' or terminal
+    USER_CC = env.get("CC_FORCE") if isinstance(env.get("CC_FORCE"), str) else None
+    USER_CXX = env.get("CXX_FORCE") if isinstance(env.get("CXX_FORCE"), str) else None
+    USER_AR = env.get("AR_FORCE") if isinstance(env.get("AR_FORCE"), str) else None
+    USER_RANLIB = env.get("RANLIB_FORCE") if isinstance(env.get("RANLIB_FORCE"), str) else None
+    USER_RC = env.get("RC_FORCE") if isinstance(env.get("RC_FORCE"), str) else None
+    USER_CCFLAGS = env.get("CCFLAGS_FORCE") if isinstance(env.get("CCFLAGS_FORCE"), str) else None
+    USER_LINKFLAGS = env.get("LINKFLAGS_FORCE") if isinstance(env.get("LINKFLAGS_FORCE"), str) else None
 
+    ## Compiler configuration
     if env["arch"] == "x86_32":
         if env["use_static_cpp"]:
             env.Append(LINKFLAGS=["-static"])
@@ -905,6 +922,36 @@ def configure_mingw(env: "SConsEnvironment"):
         }
     )
 
+    # apply overrides
+    if USER_CC is not None:
+        print(f"Setting CC to user override : {USER_CC}")
+        env["CC"] = USER_CC
+
+    if USER_CXX is not None:
+        print(f"Setting CXX to user override : {USER_CXX}")
+        env["CXX"] = USER_CXX
+
+    if USER_AR is not None:
+        print(f"Setting AR to user override : {USER_AR}")
+        env["AR"] = USER_AR
+
+    if USER_RANLIB is not None:
+        print(f"Setting RANLIB to user override : {USER_RANLIB}")
+        env["RANLIB"] = USER_RANLIB
+
+    if USER_RC is not None:
+        print(f"Setting RC to user override : {USER_RC}")
+        env["RC"] = USER_RC
+
+    if USER_CCFLAGS is not None:
+        print(f"Prepending CCFLAGS with user override : {USER_CCFLAGS}")
+        flags = USER_CCFLAGS.split() if isinstance(USER_CCFLAGS, str) else USER_CCFLAGS
+        env.Prepend(CCFLAGS=flags)
+
+    if USER_LINKFLAGS is not None:
+        print(f"Prepending LINKFLAGS with user override : {USER_LINKFLAGS}")
+        l_flags = USER_LINKFLAGS.split() if isinstance(USER_LINKFLAGS, str) else USER_LINKFLAGS
+        env.Prepend(LINKFLAGS=l_flags)
 
 def configure(env: "SConsEnvironment"):
     # Validate arch.
